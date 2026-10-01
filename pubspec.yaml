@@ -1,0 +1,27 @@
+name: bdd_framework_patrol
+description: Patrol integration for bdd_framework. Lets you write BDD scenarios that run as Patrol integration tests, with access to the PatrolIntegrationTester in every step.
+version: 1.0.0
+homepage: https://github.com/marcglasberg/bdd_framework_patrol
+topics:
+  - bdd
+  - behavior-driven-development
+  - test
+  - patrol
+  - integration-test
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_test:
+    sdk: flutter
+  # bdd_framework 5.0.0 is the first version that ships `core.dart`.
+  # During local development, `pubspec_overrides.yaml` points to ../bdd_framework.
+  bdd_framework: ^5.0.0
+  patrol: ^4.5.0
+
+dev_dependencies:
+  flutter_lints: ^6.0.0

@@ -1,0 +1,5 @@
+# Local development only: use the sibling bdd_framework checkout until
+# bdd_framework 5.0.0 is published. Delete this file before publishing.
+dependency_overrides:
+  bdd_framework:
+    path: ../bdd_framework

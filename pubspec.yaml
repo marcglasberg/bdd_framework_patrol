@@ -18,8 +18,6 @@ dependencies:
     sdk: flutter
   flutter_test:
     sdk: flutter
-  # bdd_framework 5.0.0 is the first version that ships `core.dart`.
-  # During local development, `pubspec_overrides.yaml` points to ../bdd_framework.
   bdd_framework: ^5.0.0
   patrol: ^4.5.0
 

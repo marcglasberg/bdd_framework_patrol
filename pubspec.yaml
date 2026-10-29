@@ -1,6 +1,6 @@
 name: bdd_framework_patrol
 description: Patrol integration for bdd_framework. Lets you write BDD scenarios that run as Patrol integration tests, with access to the PatrolIntegrationTester in every step.
-version: 1.0.0
+version: 1.0.1
 homepage: https://github.com/marcglasberg/bdd_framework_patrol
 topics:
   - bdd
@@ -18,7 +18,7 @@ dependencies:
     sdk: flutter
   flutter_test:
     sdk: flutter
-  bdd_framework: ^5.0.0
+  bdd_framework: ^5.1.0
   patrol: ^4.5.0
 
 dev_dependencies:

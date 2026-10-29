@@ -60,7 +60,14 @@ Run the tests with `patrol test`. The unit tests in `test/` run with
 `flutter test`.
 
 By default, `RenderFlex` overflow errors are printed but don't fail the test. Set
-`BddPatrol.ignoreOverflow = false` to make them fail it.
+`BddPatrol.ignoreOverflow = false` to make them fail it. An error that Flutter
+reports without throwing it, like an overflow, fails the step where it happens,
+and the steps after it don't run.
+
+`Bdd(feature).only` is not supported with Patrol. Patrol's generated test bundle
+needs a test that discovers the other tests to run first, and `.only` would skip
+it. A test marked with `.only` prints a warning and runs normally, and so do the
+others. To run a single test file, use `patrol test --target <file>`.
 
 ## Security note
 

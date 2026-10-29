@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bdd_framework_patrol/bdd_framework_patrol.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
 
@@ -24,7 +25,8 @@ void main() {
       expect(patrolContext.patrolTester, same(patrolTester));
     });
 
-    test('patrol code receives transformed patrol context', () async {
+    testWidgets('patrol code receives transformed patrol context',
+        (tester) async {
       final bdd = Bdd(feature)
           .scenario('Patrol context transformation')
           .given('A patrol code block')
@@ -36,7 +38,8 @@ void main() {
           .then('The patrol tester is available in the code block')
           .bdd;
 
-      final patrolTester = _FakePatrolIntegrationTester();
+      final patrolTester = _FakePatrolIntegrationTester(tester);
+      final invocations = <TestInvocation>[];
 
       BddRunner().run(
         bdd,
@@ -44,26 +47,29 @@ void main() {
           expect(ctx, isA<BddPatrolContext>());
           expect((ctx as BddPatrolContext).patrolTester, same(patrolTester));
         },
-        (invocation) async {
-          invocation.transformContext?.call(
-            (context) => BddPatrolContext.from(
-              context,
-              patrolTester: patrolTester,
-            ),
-          );
-          await invocation.body();
-        },
+        invocations.add,
         null,
       );
+      final invocation = invocations.single;
+      invocation.transformContext?.call(
+        (context) => BddPatrolContext.from(
+          context,
+          patrolTester: patrolTester,
+        ),
+      );
+      await invocation.body();
+
+      expect(bdd.passed, [true]);
     });
   });
 
   group('scenario entry points', () {
     for (final keyword in ['When', 'Then']) {
-      test('transforms Patrol context for a $keyword start', () async {
+      testWidgets('transforms Patrol context for a $keyword start',
+          (widgetTester) async {
         final bdd = Bdd(feature);
         final scenario = bdd.scenario('Patrol $keyword entry');
-        final tester = _FakePatrolIntegrationTester();
+        final tester = _FakePatrolIntegrationTester(widgetTester);
         PatrolIntegrationTester? received;
         final PatrolTestCallback callback = (ctx, patrolTester) {
           received = patrolTester;
@@ -84,6 +90,66 @@ void main() {
         expect(bdd.passed, [true]);
       });
     }
+  });
+
+  group('errors Flutter reports without throwing', () {
+    // Runs [bdd] in the current widget test, with a fake Patrol tester.
+    Future<List<Object>> runBdd(BddFramework bdd, WidgetTester tester) async {
+      final errors = <Object>[];
+      final invocations = <TestInvocation>[];
+      BddRunner().run(bdd, (_) {}, invocations.add,
+          (error, stackTrace) => errors.add(error));
+      final invocation = invocations.single;
+      invocation.transformContext!((context) => BddPatrolContext.from(context,
+          patrolTester: _FakePatrolIntegrationTester(tester)));
+      await invocation.body();
+      return errors;
+    }
+
+    testWidgets('fail the step, and the steps after it do not run',
+        (tester) async {
+      final log = <String>[];
+      final bdd = Bdd(feature)
+          .scenario('Flutter reports an error')
+          .given('A step where Flutter reports an error')
+          .code((ctx, patrolTester) {
+            log.add('given');
+            FlutterError.reportError(FlutterErrorDetails(
+                exception: FlutterError('expected reported error')));
+          })
+          .when('A later step')
+          .code((ctx, patrolTester) => log.add('when'))
+          .then('It does not run')
+          .bdd;
+
+      final errors = await runBdd(bdd, tester);
+
+      expect(log, ['given']);
+      expect(bdd.passed, [false]);
+      expect(errors.single.toString(), contains('expected reported error'));
+      // The step took the error, so the widget test itself does not fail.
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('do not fail the step when the test takes them',
+        (tester) async {
+      final bdd = Bdd(feature)
+          .scenario('The test takes the error')
+          .given('A step where Flutter reports an error')
+          .code((ctx, patrolTester) {
+            FlutterError.reportError(FlutterErrorDetails(
+                exception: FlutterError('expected and handled')));
+            expect(patrolTester.tester.takeException(), isA<FlutterError>());
+          })
+          .when('A later step')
+          .then('The test passes')
+          .bdd;
+
+      final errors = await runBdd(bdd, tester);
+
+      expect(errors, isEmpty);
+      expect(bdd.passed, [true]);
+    });
   });
 
   group('misuse feedback', () {
@@ -119,6 +185,14 @@ class _NoOpBddReporter extends BddReporter {
 }
 
 class _FakePatrolIntegrationTester implements PatrolIntegrationTester {
+  _FakePatrolIntegrationTester([this._tester]);
+
+  final WidgetTester? _tester;
+
+  @override
+  WidgetTester get tester =>
+      _tester ?? (throw StateError('This fake has no WidgetTester.'));
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
